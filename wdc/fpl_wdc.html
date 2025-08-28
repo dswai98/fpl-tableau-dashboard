@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FPL → Tableau Web Data Connector</title>
+  <script src="https://connectors.tableau.com/libs/tableauwdc-2.3.latest.js"></script>
+</head>
+<body>
+  <h1>FPL → Tableau Web Data Connector</h1>
+  <p>This connector pulls Fantasy Premier League player data from the official API into Tableau. Refresh weekly for updates.</p>
+
+  <div id="status">Ready.</div>
+  <button id="testBtn">Test API</button>
+  <button id="submitBtn">Get FPL Players → Tableau</button>
+
+  <script>
+    const API_BASE = 'https://fantasy.premierleague.com/api/';
+
+    async function fetchBootstrap() {
+      const res = await fetch(API_BASE + 'bootstrap-static/');
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      return res.json();
+    }
+
+    document.getElementById('testBtn').addEventListener('click', async () => {
+      try {
+        document.getElementById('status').textContent = 'Testing API...';
+        const data = await fetchBootstrap();
+        document.getElementById('status').textContent =
+          'API OK. Found ' + data.elements.length + ' players.';
+      } catch (e) {
+        document.getElementById('status').textContent = 'API failed: ' + e.message;
+      }
+    });
+
+    (function() {
+      const myConnector = tableau.makeConnector();
+
+      myConnector.getSchema = function(schemaCallback) {
+        const cols = [
+          { id: 'id', dataType: tableau.dataTypeEnum.int },
+          { id: 'web_name', dataType: tableau.dataTypeEnum.string },
+          { id: 'team', dataType: tableau.dataTypeEnum.int },
+          { id: 'now_cost', dataType: tableau.dataTypeEnum.int },
+          { id: 'total_points', dataType: tableau.dataTypeEnum.int },
+          { id: 'minutes', dataType: tableau.dataTypeEnum.int },
+          { id: 'goals_scored', dataType: tableau.dataTypeEnum.int },
+          { id: 'assists', dataType: tableau.dataTypeEnum.int }
+        ];
+        schemaCallback([{ id: 'fpl_players', alias: 'FPL Players', columns: cols }]);
+      };
+
+      myConnector.getData = async function(table, doneCallback) {
+        const data = await fetchBootstrap();
+        const rows = data.elements.map(p => ({
+          id: p.id,
+          web_name: p.web_name,
+          team: p.team,
+          now_cost: p.now_cost,
+          total_points: p.total_points,
+          minutes: p.minutes,
+          goals_scored: p.goals_scored,
+          assists: p.assists
+        }));
+        table.appendRows(rows);
+        doneCallback();
+      };
+
+      tableau.registerConnector(myConnector);
+      document.getElementById('submitBtn').addEventListener('click', () => {
+        tableau.connectionName = 'FPL Players';
+        tableau.submit();
+      });
+    })();
+  </script>
+</body>
+</html>
