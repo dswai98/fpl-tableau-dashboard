@@ -15,13 +15,21 @@
   <button id="submitBtn">Get FPL Players → Tableau</button>
 
   <script>
-    const API_BASE = 'https://fantasy.premierleague.com/api/';
+    // Use a passthrough to avoid browser CORS blocks on GitHub Pages.
+  const CORS = 'https://cors.isomorphic-git.org/';  // simple public passthrough
+  const FPL = 'https://fantasy.premierleague.com/api/';
 
-    async function fetchBootstrap() {
-      const res = await fetch(API_BASE + 'bootstrap-static/');
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      return res.json();
-    }
+  function build(url) {
+    // Route all API calls through the CORS passthrough
+    return CORS + url;
+  }
+
+  async function fetchBootstrap() {
+    const res = await fetch(build(FPL + 'bootstrap-static/'));
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    return res.json();
+  }
+
 
     document.getElementById('testBtn').addEventListener('click', async () => {
       try {
